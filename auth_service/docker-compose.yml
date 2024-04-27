@@ -1,0 +1,54 @@
+version: "3"
+services:
+  redis:
+    image: redis:7.2.4
+    container_name: redis-auth
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    expose:
+      - "${REDIS_PORT}"
+
+  db:
+    image: postgres:13
+    container_name: pgdb-auth
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdbauth:/var/lib/postgresql@13/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DB_NAME} -U ${DB_USER}"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  app:
+    build: .
+    command: python src/main.py
+    container_name: solution-auth
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    env_file:
+      - ./.env
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-auth
+    volumes:
+      - ./configs/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./configs/site.conf:/etc/nginx/conf.d/site.conf:ro
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - "${SERVICE_PORT}:80"
+
+volumes:
+  pgdbauth:

@@ -1,0 +1,58 @@
+version: "3"
+services:
+  redis:
+    image: redis:7.2.4
+    container_name: redis-auth-test
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    expose:
+      - "${REDIS_PORT}"
+
+  db:
+    image: postgres:13
+    container_name: pgdb-auth-test
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    expose:
+      - "${DB_PORT}"
+    volumes:
+      - pgdbauth-test:/var/lib/postgresql@13/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DB_NAME} -U ${DB_USER}"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  app:
+    build: ../../.
+    command: python main.py
+    container_name: solution-auth-test
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    env_file:
+      - ./.env
+
+  tests:
+    build: .
+    command: pytest -v src
+    container_name: test-auth-test
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+    env_file:
+      - ./.env
+
+volumes:
+  pgdbauth-test:
