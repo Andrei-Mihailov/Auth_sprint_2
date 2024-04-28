@@ -21,3 +21,5 @@ async-fastapi-jwt-auth==0.6.4
 flake8==7.0.0
 click==7.1.2
 alembic==1.13.1
+yandexid
+yandex-oauth

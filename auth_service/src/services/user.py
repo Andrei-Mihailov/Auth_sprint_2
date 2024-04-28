@@ -16,6 +16,7 @@ from .utils import (
 
 from db.postgres_db import get_session
 from db.redis_db import RedisCache, get_redis
+from .providers.yandex import YandexProvider
 
 
 class UserService(BaseService):
@@ -75,6 +76,27 @@ class UserService(BaseService):
         # добавление refresh токена в вайт-лист редиса
         await self.add_to_white_list(refresh_token, REFRESH_TOKEN_TYPE)
         return Tokens(access_token=access_token, refresh_token=refresh_token), user
+
+    async def login_by_yandex(
+        self,
+        code: int,
+        yandex_provider: YandexProvider,
+        user_agent: str
+    ) -> Tokens:
+        result = await yandex_provider.register(code, self)
+        if result is None:
+            return HTTPStatus.BAD_REQUEST
+
+        user_id, email = result[0], result[1]
+        tokens = await self.__generate_and_save_tokens(
+                user_id=user_id,
+                email=email,
+                user_agent=user_agent
+            )
+        if tokens is None:
+            return HTTPStatus.CONFLICT
+        return tokens
+
 
     async def logout(self, access_token: str, refresh_token: str) -> bool:
         await self.add_to_black_list(access_token, ACCESS_TOKEN_TYPE)

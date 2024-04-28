@@ -67,3 +67,14 @@ pg_config_data = PostgreSQLConfig(
     host=settings.db_host,
     port=settings.db_port,
 )
+
+class YandexSettings(BaseSettings):
+	YANDEX_CLIENT_ID: str
+	YANDEX_CLIENT_SECRET: str
+	YANDEX_REDIRECT_URI: str
+
+	class Config:
+		case_sensitive = True
+		env_file = "providers.env"
+        
+yandex_settings = YandexSettings()

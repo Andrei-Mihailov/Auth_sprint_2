@@ -14,6 +14,7 @@ from api.v1.schemas.roles import PermissionsParams
 from services.user import UserService, get_user_service
 from services.auth import AuthService, get_auth_service
 from .service import get_tokens_from_cookie, PaginationParams, security_jwt
+from src.services.providers.yandex import yandex_provider, YandexProvider
 
 router = APIRouter()
 
@@ -43,6 +44,41 @@ async def login(
     response.set_cookie("access_token", tokens_resp.access_token)
     response.set_cookie("refresh_token", tokens_resp.refresh_token)
     return response
+
+@router.get(
+    '/login/yandex/redirect',
+    response_model=Tokens,
+    status_code=HTTPStatus.ACCEPTED,
+    summary="Войти с помощью яндекса",
+    tags=["Авторизация"],
+)
+async def yandex_login_redirect(
+    code: int,
+    request: Request,
+    yandex_provider: YandexProvider = Depends(yandex_provider),
+    auth_service: AuthService = Depends(auth_service)
+):
+    user_agent = request.headers.get("User-Agent")
+    login_result = await auth_service.login_by_yandex(
+        code=code, yandex_provider=yandex_provider, user_agent=user_agent
+    )
+    if login_result == HTTPStatus.CONFLICT:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail='User not found'
+        )
+
+    if login_result == HTTPStatus.UNAUTHORIZED:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail='Invalid password'
+        )
+    if not login_result:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_GATEWAY,
+            detail="Can't login"
+        )
+    return login_result
 
 
 # /api/v1/users/user_registration
