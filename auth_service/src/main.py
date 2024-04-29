@@ -5,10 +5,16 @@ import asyncio
 import functools as ft
 import sys
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request, status
 from fastapi.responses import ORJSONResponse
 from redis.asyncio import Redis
 from contextlib import asynccontextmanager
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider        
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.sdk.resources import Resource, SERVICE_NAME
 
 from api.v1 import users, roles, permissions
 from db import postgres_db
@@ -24,6 +30,26 @@ async def lifespan(app: FastAPI):
     await redis_db.redis.close()
 
 
+def configure_tracer() -> None:
+    trace.set_tracer_provider(
+        TracerProvider(
+            resource=Resource.create({SERVICE_NAME: "Auth-service"})
+        )
+    )
+    trace.get_tracer_provider().add_span_processor(
+        BatchSpanProcessor(
+            JaegerExporter(
+                agent_host_name=settings.service_host,
+                agent_port=6831,
+            )
+        )
+    )
+    # Чтобы видеть трейсы в консоли
+    trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
+
+configure_tracer()
+
+
 app = FastAPI(
     lifespan=lifespan,
     title="Сервис авторизации",
@@ -32,6 +58,22 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     default_response_class=ORJSONResponse,
 )
+
+
+FastAPIInstrumentor.instrument_app(app, tracer_provider=trace.get_tracer_provider()) 
+
+
+@app.middleware('http')
+async def before_request(request: Request, call_next):
+    response = await call_next(request)
+    request_id = request.headers.get('X-Request-Id')
+    if not request_id:
+        return ORJSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={'detail': 'X-Request-Id is required'})
+    tracer = trace.get_tracer(__name__)
+    span = tracer.start_span('request')
+    span.set_attribute('http.request_id', request_id)
+    span.end() 
+    return response
 
 
 def number_of_workers():

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     project_name: str
 
     service_port: int
+    service_host: str
 
     # Настройки postgres
     db_name: str
