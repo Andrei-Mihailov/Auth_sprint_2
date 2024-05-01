@@ -39,7 +39,7 @@ def configure_tracer() -> None:
     trace.get_tracer_provider().add_span_processor(
         BatchSpanProcessor(
             JaegerExporter(
-                agent_host_name=settings.service_host,
+                agent_host_name='jaeger',
                 agent_port=6831,
             )
         )
@@ -60,19 +60,19 @@ app = FastAPI(
 )
 
 
-FastAPIInstrumentor.instrument_app(app, tracer_provider=trace.get_tracer_provider()) 
+FastAPIInstrumentor.instrument_app(app) 
 
 
 @app.middleware('http')
 async def before_request(request: Request, call_next):
-    response = await call_next(request)
     request_id = request.headers.get('X-Request-Id')
     if not request_id:
         return ORJSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={'detail': 'X-Request-Id is required'})
+    
     tracer = trace.get_tracer(__name__)
-    span = tracer.start_span('request')
-    span.set_attribute('http.request_id', request_id)
-    span.end() 
+    with tracer.start_as_current_span('http', attributes={'http.request_id': request_id}):
+        response = await call_next(request=request)
+ 
     return response
 
 

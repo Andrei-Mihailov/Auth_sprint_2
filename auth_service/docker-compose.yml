@@ -53,7 +53,7 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:latest
     ports:
-      - "6831:6831/udp"
+      - "6831:6831"
       - "16686:16686"
     depends_on:
       nginx:
