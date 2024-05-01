@@ -18,8 +18,14 @@ class AuthJWT(BaseModel):
     access_token_expire_minutes: int = 20 * 60
     refresh_token_expire_minutes: int = 30 * 24 * 60 * 60  # 30 дней
 
+class OauthYandex(BaseModel):
+    oauth_url: str = 'https://oauth.yandex.ru/'
+    login_url: str = 'https://login.yandex.ru/'
+    client_id: str
+    client_secret: str
 
 class Settings(BaseSettings):
+    oauth_yandex: OauthYandex
     # Название проекта. Используется в Swagger-документации
     project_name: str
 
