@@ -38,6 +38,22 @@ class Permissions(Base):
     role: Mapped[Roles] = relationship("Roles", back_populates="permissions")
 
 
+class SocialAccount(Base):
+    __tablename__ = 'social_account'
+
+    id = mapped_column(UUID(as_uuid=True), primary_key=True)
+    user_id = mapped_column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    user = relationship("User", back_populates='social_accounts')
+
+    social_id = mapped_column(Text, nullable=False)
+    social_name = mapped_column(Text, nullable=False)
+
+    __table_args__ = (UniqueConstraint('social_id', 'social_name', name='social_pk'), )
+
+    def __repr__(self):
+        return f'<SocialAccount {self.social_name}:{self.user_id}>'
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -59,6 +75,7 @@ class User(Base):
     )
     role: Mapped[Roles] = relationship("Roles", back_populates="users")
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    social_accounts: Mapped[list["SocialAccount"]] = relationship("SocialAccount", back_populates="user")
 
     def __init__(
         self,
@@ -87,22 +104,6 @@ class User(Base):
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"
-
-
-class SocialAccount(Base):
-    __tablename__ = 'social_account'
-
-    id = mapped_column(UUID(as_uuid=True), primary_key=True)
-    user_id = mapped_column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    user = relationship("User", back_populates='social_accounts')
-
-    social_id = mapped_column(Text, nullable=False)
-    social_name = mapped_column(Text, nullable=False)
-
-    __table_args__ = (UniqueConstraint('social_id', 'social_name', name='social_pk'), )
-
-    def __repr__(self):
-        return f'<SocialAccount {self.social_name}:{self.user_id}>'
 
 
 class Authentication(Base):

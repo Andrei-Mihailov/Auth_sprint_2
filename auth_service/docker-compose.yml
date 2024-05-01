@@ -30,6 +30,8 @@ services:
     build: .
     command: python src/main.py
     container_name: solution-auth
+    volumes:
+      - ./src/migrations:/app/src/migrations
     depends_on:
       redis:
         condition: service_healthy

@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from db.postgres_db import Base
 ${imports if imports else ""}
 
 # revision identifiers, used by Alembic.
