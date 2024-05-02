@@ -81,9 +81,7 @@ class UserService(BaseService):
         await self.del_from_white_list(refresh_token)
         return True
 
-    async def refresh_access_token(
-        self, access_token: str, refresh_token: str
-    ) -> Tokens:
+    async def refresh_access_token(self, access_token: str, refresh_token: str, get: object) -> Tokens:
         # Декодирование refresh-токена
         payload = self.token_decode(refresh_token)
         user_uuid = payload.get("sub")

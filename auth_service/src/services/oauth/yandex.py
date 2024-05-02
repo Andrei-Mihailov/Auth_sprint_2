@@ -1,5 +1,4 @@
 import requests
-#from core.config import settings
 from auth_service.src.core.config import Settings
 from auth_service.src.services.oauth.base import  OAuthService
 

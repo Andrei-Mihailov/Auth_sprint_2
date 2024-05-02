@@ -15,5 +15,5 @@ class OAuthService(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_user_info(self, access_token) -> dict:
+    def get_user_info(self, access_token: object) -> dict:
         raise NotImplementedError
