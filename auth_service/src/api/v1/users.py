@@ -1,6 +1,6 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, status, HTTPException, Request, Response
-
+from fastapi.responses import JSONResponse
 
 from api.v1.schemas.auth import (
     AuthenticationSchema,
@@ -39,7 +39,15 @@ async def login(
     )
     user_agent_data = AuthenticationData(user_agent=user_agent, user_id=user.id)
     await auth_service.new_auth(user_agent_data)
-    response = Response()
+    user_schema = UserSchema(
+        uuid=str(user.id),
+        email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        is_superuser=user.is_superuser,
+        role=user.role
+    )
+    response = JSONResponse(content=user_schema.dict())
     response.set_cookie("access_token", tokens_resp.access_token)
     response.set_cookie("refresh_token", tokens_resp.refresh_token)
     return response

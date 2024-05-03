@@ -64,4 +64,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 MEDIA_ROOT = '/movies/'
 
-AUTH_USER_MODEL = "models.User"
+AUTH_USER_MODEL = "users.User"
+
+AUTH_API_LOGIN_URL = os.environ.get('AUTH_API_LOGIN_URL')

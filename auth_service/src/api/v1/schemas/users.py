@@ -5,10 +5,12 @@ from models.value_objects import UserID
 
 
 class UserSchema(BaseModel):
-    uuid: UserID
+    uuid: str
     email: str
     first_name: Union[str, None]
     last_name: Union[str, None]
+    role: Union[str, None]
+    is_superuser: Union[bool, None]
 
 
 class UserParams(BaseModel):
