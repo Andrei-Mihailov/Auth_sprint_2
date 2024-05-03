@@ -31,6 +31,7 @@ async def get_authorize_url(provider: str):
 @router.get("/{provider}/webhook")
 async def receive_verification_code(request: Request, provider: str):
     """Webhook for redirect after authorization in Yandex."""
+    user_params: Annotated[AuthenticationParams, Depends()]
     verification_code = request.query_params.get('code', None)
     state = request.query_params.get('state', None)
 
@@ -51,12 +52,14 @@ async def receive_verification_code(request: Request, provider: str):
         access_token=token_data.get('access_token'))
 
     user = user_service.get_user_by_email(
-        email=user_info.get('default_email'),
+        email=user_info.get(user_params.email)
     )
-    user_params: Annotated[AuthenticationParams, Depends()]
     if user is None:
         user = await user_service.create_user(user_params)
-
+        social_account = await user_service.create_social_account(user.id, provider)
+    social_account = await user_service.get_social_account(user.id, provider)
+    if social_account is None:
+        social_account = await user_service.create_social_account(user.id, provider)
     user_service.refresh_access_token(user.id, PROVIDER, data.get('expires_in'))
 
     return {'user_id': user.id}

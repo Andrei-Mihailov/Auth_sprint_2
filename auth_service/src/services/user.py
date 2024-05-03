@@ -66,6 +66,10 @@ class UserService(BaseService):
         user = await self.create_new_instance(user_params)
         return user
 
+    async def create_social_account(self, user_params) -> User:
+        social_user = await  self.create_new_instance(user_params)
+        return social_user
+
     async def login(self, user_email: str, user_password: str) -> Tokens:
         user = await self.get_validate_user(user_email, user_password)
         user_role = user.role.type if user.role else None
