@@ -70,10 +70,12 @@ async def user_registration(
     user = await user_service.create_user(user_params)
     if user is not None:
         return UserSchema(
-            uuid=user.id,
+            uuid=str(user.id),
             email=user.email,
             first_name=user.first_name,
             last_name=user.last_name,
+            role=user.role,
+            is_superuser=user.is_superuser
         )
     else:
         raise HTTPException(
@@ -105,6 +107,8 @@ async def change_user_info(
         email=change_user.email,
         first_name=change_user.first_name,
         last_name=change_user.last_name,
+        role=change_user.role,
+        is_superuser=change_user.is_superuser
     )
 
 
