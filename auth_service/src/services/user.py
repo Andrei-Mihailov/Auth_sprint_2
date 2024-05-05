@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException, status
 from functools import lru_cache
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.entity import User
+from models.entity import User, SocialAccount
 from .base_service import BaseService
 from models.auth import Tokens
 from .utils import (
@@ -67,8 +67,27 @@ class UserService(BaseService):
         return user
 
     async def create_social_account(self, user_params) -> User:
-        social_user = await  self.create_new_instance(user_params)
+        social_account_data = {
+            'id': 'значение_id',
+            'user_id': user_params['user_id'],
+            'social_id': 'значение_social_id',
+            'social_name': 'значение_social_name'
+        }
+        new_social_account = SocialAccount(**social_account_data)
+        social_user = await self.create_new_instance(new_social_account)
         return social_user
+
+    async def get_social_account(self, user_id, provider):
+        social_account_data = {
+            'id': 'значение_id',
+            'user_id': user_id,
+            'social_id': 'значение_social_id',
+            'social_name': 'значение_social_name'
+        }
+        social_account_params = SocialAccount(**social_account_data)
+        social_accound = self.get_instance_data(user_id, social_account_params)
+        return social_accound
+
 
     async def login(self, user_email: str, user_password: str) -> Tokens:
         user = await self.get_validate_user(user_email, user_password)

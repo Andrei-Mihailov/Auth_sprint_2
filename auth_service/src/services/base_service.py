@@ -45,6 +45,19 @@ class BaseService(AbstractBaseService):
         return instance
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
+    async def get_instance_data(self, instance_id: int):
+        try:
+            instance = await self.storage.get(self.model, instance_id)
+            if instance is None:
+                return None
+            return instance
+        except DBAPIError:
+            return None
+        except Exception as e:
+            print(f"Ошибка при получении объекта: {e}")
+            return None
+
+    @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def change_instance_data(self, instance_id: int, model_params: dict):
         try:
             instance = await self.storage.get(self.model, instance_id)
