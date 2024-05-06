@@ -14,6 +14,7 @@ from api.v1.schemas.roles import PermissionsParams
 from services.user import UserService, get_user_service
 from services.auth import AuthService, get_auth_service
 from .service import get_tokens_from_cookie, PaginationParams, security_jwt
+from services.oauth import get_provider_service
 
 router = APIRouter()
 
@@ -134,6 +135,10 @@ async def refresh_token(
     request: Request, user_service: UserService = Depends(get_user_service)
 ) -> TokenSchema:
     tokens = get_tokens_from_cookie(request)
+
+    oauth_service = get_provider_service("yandex")
+
+    data = oauth_service.refresh_token(refresh_token=refresh_token)
     new_tokens = await user_service.refresh_access_token(tokens.access_token, tokens.refresh_token,
                                                          data.get('expires_in'))
     response = Response()
