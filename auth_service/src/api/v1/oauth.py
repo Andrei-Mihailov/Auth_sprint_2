@@ -31,6 +31,10 @@ async def get_authorize_url(provider: str):
 @router.get("/{provider}/webhook")
 async def receive_verification_code(request: Request, provider: str):
     """Webhook for redirect after authorization in Yandex."""
+    oauth_service = get_provider_service(provider)
+    refresh_token = get_tokens_from_cookie(request)
+
+    data = oauth_service.refresh_token(refresh_token=refresh_token)
     user_params: Annotated[AuthenticationParams, Depends()]
     verification_code = request.query_params.get('code', None)
     state = request.query_params.get('state', None)
