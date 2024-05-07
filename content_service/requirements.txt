@@ -10,3 +10,5 @@ gunicorn==21.2.0
 backoff==2.2.1
 psycopg2_binary==2.9.9
 uvloop==0.17.0 ; sys_platform != "win32" and implementation_name == "cpython"
+passlib==1.7.4
+PyJWT==2.8.0

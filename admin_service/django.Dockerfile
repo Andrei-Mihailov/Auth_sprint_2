@@ -17,7 +17,7 @@ COPY ./admin_service/requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
 COPY ./admin_service/ $HOME_APP
-COPY ./envs.env /app/config/.env
+COPY ./envs/admin.env /app/config/.env
 
 RUN chown -R app:app $HOME_APP
 
