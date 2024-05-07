@@ -1,8 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Union
 
-from models.value_objects import UserID
-
 
 class UserSchema(BaseModel):
     uuid: str

@@ -1,17 +1,21 @@
 version: "3"
 services:
+  # ------- general ------ #
   redis:
     image: redis:7.2.4
-    container_name: redis-auth
+    container_name: redis
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       timeout: 10s
       retries: 5
       start_period: 10s
+    env_file:
+      - ./envs/.env
     expose:
       - "${REDIS_PORT}"
 
-  db:
+  # ------- auth service ------ #
+  auth_db:
     image: postgres:13
     container_name: pgdb-auth
     environment:
@@ -26,29 +30,160 @@ services:
       timeout: 10s
       retries: 5
 
-  app:
-    build: .
-    command: python src/main.py
-    container_name: solution-auth
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "6831:6831"
+      - "16686:16686"
     depends_on:
-      redis:
-        condition: service_healthy
-      db:
-        condition: service_healthy
-    env_file:
-      - ./.env
+      nginx:
+        condition: service_started
 
+  auth_service:
+    build:
+      context: .
+      dockerfile: ./auth_service/auth.Dockerfile
+    command: python src/main.py
+    container_name: auth_service
+    depends_on:
+      - redis
+      - auth_db
+      - jaeger
+    env_file:
+      - ./envs/auth.env
+
+  # ------- admin service ------ #
+  admin_service:
+    container_name: admin_service
+    build:
+      context: .
+      dockerfile: ./admin_service/django.Dockerfile
+    command: sh -c "python3 manage.py migrate --noinput && python3 manage.py collectstatic --no-input --clear && gunicorn config.wsgi:application --bind ${ADMIN_APP_HOST}:${ADMIN_APP_PORT}"
+    volumes:
+      - pgdbadmin:/var/lib/postgresql@13/data/
+      - static_volume:/app/static
+    depends_on:
+      - admin_db
+
+  admin_db:
+    container_name: admin_db
+    env_file:
+      - ./envs/admin.env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+  # ------- content_service ------ #
+  elastic:
+    container_name: elastic
+    image: elasticsearch:8.6.2
+    environment:
+      ES_JAVA_OPTS: ${ES_JAVA_OPTS}
+      xpack.security.enabled: ${SECURITY}
+      discovery.type: ${DISCOVERY}
+    expose:
+      - "${ELASTIC_PORT}"
+    volumes:
+      - elasticdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: curl -s ${ELASTIC_HOST}:${ELASTIC_PORT} >/dev/null || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 50
+    env_file:
+      - ./envs/content.env
+
+  db:
+    container_name: pgdb-content
+    image: postgres:13
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    expose:
+      - "${DB_PORT}"
+    volumes:
+      - pgdbcontent:/var/lib/postgresql@13/data/
+      - ./postgres_to_es/dump.sql:/docker-entrypoint-initdb.d/dump.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DB_NAME} -U ${DB_USER}"]
+      interval: 5s
+      timeout: 60s
+      retries: 5
+    env_file:
+      - ./envs/content.env
+
+  content_service:
+    container_name: content_service
+    build:
+      context: .
+      dockerfile: ./content_service/content.Dockerfile
+    command: >
+      sh -c "until curl -s elastic:${ELASTIC_PORT} >/dev/null; do sleep 1; done; python main.py"
+    env_file:
+      - ./envs/content.env
+
+  # ------- etl_service ------ #
+  etl-films:
+    container_name: etl-films
+    build:
+      context: .
+      dockerfile: ./etl_service/etl.Dockerfile
+    command: >
+      sh -c "until curl -s elastic:${ELASTIC_PORT} >/dev/null; do sleep 1; done; python postgres_to_es.py films"
+    volumes:
+      - pgdbcontent:/var/lib/postgresql@13/data/
+      - ./postgres_to_es/postgres_to_es.py:/opt/app/postgres_to_es.py
+      - ./postgres_to_es/utils:/opt/app/utils
+      - ./postgres_to_es/configs:/opt/app/configs
+    env_file:
+      - ./envs/etl.env
+
+  etl-genres:
+    container_name: etl-genres
+    build:
+      context: .
+      dockerfile: ./etl_service/etl.Dockerfile
+    command: >
+      sh -c "until curl -s elastic:${ELASTIC_PORT} >/dev/null; do sleep 1; done; python postgres_to_es.py genres"
+    volumes:
+      - pgdbcontent:/var/lib/postgresql@13/data/
+      - ./postgres_to_es/postgres_to_es.py:/opt/app/postgres_to_es.py
+      - ./postgres_to_es/utils:/opt/app/utils
+      - ./postgres_to_es/configs:/opt/app/configs
+    env_file:
+      - ./envs/etl.env
+
+  etl-persons:
+    container_name: etl-persons
+    build:
+      context: .
+      dockerfile: ./etl_service/etl.Dockerfile
+    command: >
+      sh -c "until curl -s elastic:${ELASTIC_PORT} >/dev/null; do sleep 1; done; python postgres_to_es.py persons"
+    volumes:
+      - pgdbcontent:/var/lib/postgresql@13/data/
+      - ./postgres_to_es/postgres_to_es.py:/opt/app/postgres_to_es.py
+      - ./postgres_to_es/utils:/opt/app/utils
+      - ./postgres_to_es/configs:/opt/app/configs
+    env_file:
+      - ./envs/etl.env
+  # ------- nginx ------ #
   nginx:
     image: nginx:latest
     container_name: nginx-auth
     volumes:
-      - ./configs/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./configs/site.conf:/etc/nginx/conf.d/site.conf:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./site.conf:/etc/nginx/conf.d/site.conf:ro
     depends_on:
-      app:
-        condition: service_started
+      - auth_service
+      - film_service
+      - admin_service
     ports:
       - "${SERVICE_PORT}:80"
 
 volumes:
   pgdbauth:
+  pgdbcontent:
+  pgdbadmin:

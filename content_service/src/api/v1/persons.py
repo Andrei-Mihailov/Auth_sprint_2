@@ -5,6 +5,8 @@ from pydantic import BaseModel, TypeAdapter
 
 from core.config import page_max_size
 from services.person import PersonService, get_person_service
+from utils.auth import security_jwt_check
+
 
 router = APIRouter()
 
@@ -34,6 +36,7 @@ class Person(BaseModel):
             response_description="Ид, ФИО, список фильмов",
             tags=['Персоны'])
 async def find_persons(query: str,
+                       user: Annotated[dict, Depends(security_jwt_check)],
                        page_number: Annotated[int, Query(
                            description='Номер страницы', ge=1)] = 1,
                        page_size: Annotated[int, Query(
@@ -56,7 +59,9 @@ async def find_persons(query: str,
             description="Поиск персоны по ид",
             response_description="Ид, ФИО, список фильмов",
             tags=['Персоны'])
-async def person_details(person_id: str, person_service: PersonService = Depends(get_person_service)) -> Person:
+async def person_details(person_id: str,
+                         user: Annotated[dict, Depends(security_jwt_check)],
+                         person_service: PersonService = Depends(get_person_service)) -> Person:
     person = await person_service.get_by_id(person_id)
     if not person:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND,
@@ -83,6 +88,7 @@ async def person_details(person_id: str, person_service: PersonService = Depends
             response_description="Список фильмов с ид, наименованием и рейтингом",
             tags=['Персоны'])
 async def all_person_films(person_id: str,
+                           user: Annotated[dict, Depends(security_jwt_check)],
                            page_number: Annotated[int, Query(
                                description='Номер страницы', ge=1)] = 1,
                            page_size: Annotated[int, Query(

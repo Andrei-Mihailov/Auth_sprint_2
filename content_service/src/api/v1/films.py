@@ -5,6 +5,8 @@ from pydantic import BaseModel, TypeAdapter
 
 from core.config import page_max_size
 from services.film import FilmService, get_film_service
+from utils.auth import security_jwt
+
 
 router = APIRouter()
 
@@ -41,6 +43,7 @@ class FilmDetails(Film):
             response_description="Ид, название, рейтинг",
             tags=['Фильмы'])
 async def find_films(query: str,
+                     user: Annotated[dict, Depends(security_jwt)],
                      page_number: Annotated[int, Query(
                          description='Номер страницы', ge=1)] = 1,
                      page_size: Annotated[int, Query(
@@ -63,7 +66,8 @@ async def find_films(query: str,
             description="Поиск по ид",
             response_description="Ид, название, рейтинг, описание, жанры, актеры, режиссеры, сценаристы",
             tags=['Фильмы'])
-async def film_details(film_id: str, film_service: FilmService = Depends(get_film_service)) -> FilmDetails:
+async def film_details(film_id: str,
+                       film_service: FilmService = Depends(get_film_service)) -> FilmDetails:
     film = await film_service.get_by_id(film_id)
 
     if not film:
@@ -105,7 +109,8 @@ async def film_details(film_id: str, film_service: FilmService = Depends(get_fil
             description="Полнотекстовый поиск по жанру фильмов",
             response_description="Ид, название, рейтинг",
             tags=['Фильмы'])
-async def all_films(page_number: Annotated[int, Query(description='Номер страницы', ge=1)] = 1,
+async def all_films(user: Annotated[dict, Depends(security_jwt)],
+                    page_number: Annotated[int, Query(description='Номер страницы', ge=1)] = 1,
                     page_size: Annotated[int, Query(
                         description='Количество результатов запроса на странице', ge=1, le=page_max_size)] = page_max_size,
                     genre: Union[str, None] = None,

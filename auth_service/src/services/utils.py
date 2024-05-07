@@ -5,7 +5,6 @@ from datetime import timedelta, datetime, timezone
 from fastapi import HTTPException, status
 
 from core.config import settings
-
 from models.value_objects import Role_names
 
 ACCESS_TOKEN_TYPE = "access"

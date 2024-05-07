@@ -1,6 +1,7 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, status, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, status, HTTPException, Security, Request, Response
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from api.v1.schemas.auth import (
     AuthenticationSchema,
@@ -13,9 +14,30 @@ from api.v1.schemas.users import UserParams, UserSchema, UserEditParams
 from api.v1.schemas.roles import PermissionsParams
 from services.user import UserService, get_user_service
 from services.auth import AuthService, get_auth_service
-from .service import get_tokens_from_cookie, PaginationParams, security_jwt
+from .service import get_tokens_from_cookie, PaginationParams
 
 router = APIRouter()
+
+
+# /api/v1/users/me
+@router.get(  # ручка для проверки текущего пользователя для других сервисов
+    "/me",
+    response_model=UserSchema,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Кто я",
+    tags=['Пользователь']
+)
+async def read_users_me(credentials: HTTPAuthorizationCredentials = Security(HTTPBearer()),
+                        user_service: UserService = Depends(get_user_service)):
+    user = await user_service.get_current_user(credentials.credentials)
+    return UserSchema(
+        uuid=str(user.id),
+        email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        is_superuser=user.is_superuser,
+        role=user.role
+    )
 
 
 # /api/v1/users/login
@@ -47,7 +69,7 @@ async def login(
         is_superuser=user.is_superuser,
         role=user.role
     )
-    response = JSONResponse(content=user_schema.dict())
+    response = JSONResponse(content=user_schema.model_dump())
     response.set_cookie("access_token", tokens_resp.access_token)
     response.set_cookie("refresh_token", tokens_resp.refresh_token)
     return response
@@ -97,7 +119,6 @@ async def user_registration(
 async def change_user_info(
     request: Request,
     user_params: Annotated[UserEditParams, Depends()],
-    user: Annotated[dict, Depends(security_jwt)],
     user_service: UserService = Depends(get_user_service)
 ) -> UserSchema:
     tokens = get_tokens_from_cookie(request)

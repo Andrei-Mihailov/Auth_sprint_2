@@ -133,11 +133,31 @@ class UserService(BaseService):
         except AttributeError:
             return False
 
+    async def get_current_user(
+        self,
+        access_token: str
+    ) -> User:
+        payload = self.token_decode(access_token)
+        user_uuid = payload.get("sub")
+        user: User = await self.get_instance_by_id(user_uuid)
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not user.active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
+            )
+        return user
+
 
 @lru_cache()
 def get_user_service(
     redis: RedisCache = Depends(get_redis),
     db: AsyncSession = Depends(get_session),
 ) -> UserService:
-
     return UserService(redis, db)

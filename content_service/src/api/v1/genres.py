@@ -5,6 +5,7 @@ from pydantic import BaseModel, TypeAdapter
 
 from core.config import page_max_size
 from services.genre import GenreService, get_genre_service
+from utils.auth import security_jwt_check
 
 router = APIRouter()
 
@@ -39,9 +40,10 @@ async def genre_details(genre_id: str, genre_service: GenreService = Depends(get
             description="Список всех жанров с пагинацией",
             response_description="Ид, название",
             tags=['Жанры'])
-async def all_genres(page_number: Annotated[int, Query(description='Номер страницы', ge=1)] = 1,
+async def all_genres(user: Annotated[dict, Depends(security_jwt_check)],
+                     page_number: Annotated[int, Query(description='Номер страницы', ge=1)] = 1,
                      page_size: Annotated[int, Query(
-                        description='Количество результатов запроса на странице', ge=1, le=page_max_size)] = page_max_size,
+                         description='Количество результатов запроса на странице', ge=1, le=page_max_size)] = page_max_size,
                      genre_service: GenreService = Depends(get_genre_service),
                      ) -> list[Genre]:
 

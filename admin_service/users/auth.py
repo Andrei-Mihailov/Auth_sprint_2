@@ -8,6 +8,8 @@ from requests.exceptions import ConnectionError
 from django.conf import settings
 from django.contrib.auth.backends import BaseBackend
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
+
 
 User = get_user_model()
 
@@ -22,8 +24,7 @@ class CustomBackend(BaseBackend):
         url = settings.AUTH_API_LOGIN_URL
         payload = {
             'email': username,
-            'password': password,
-            # 'set_cookie': False
+            'password': password
         }
         headers = {'X-Request-Id': str(uuid.uuid4())}
         try:
@@ -32,23 +33,22 @@ class CustomBackend(BaseBackend):
                 headers=headers,
                 params=payload,
             )
+            if response.status_code != http.HTTPStatus.OK:
+                return None
+            data = response.json()
         except ConnectionError:
-            return None
-        if response.status_code != http.HTTPStatus.OK:
-            return None
-
-        data = response.json()
+            data = AnonymousUser().__dict__
 
         try:
-            user, _ = User.objects.get_or_create(id=data['uuid'])
-            user.email = data.get('email')
-            user.first_name = data.get('first_name')
-            user.last_name = data.get('last_name')
-            user.is_staff = data.get('role') == Roles.ADMIN or data.get('is_superuser')
-            user.is_superuser = data.get('is_superuser')
-            user.is_active = data.get('active')
+            user, _ = User.objects.get_or_create(id=data.get('uuid', 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'))
+            user.email = data.get('email', 'anonym')
+            user.first_name = data.get('first_name', 'anonym')
+            user.last_name = data.get('last_name', 'anonym')
+            user.is_staff = data.get('role', None) == Roles.ADMIN or data.get('is_superuser', False)
+            user.is_superuser = data.get('is_superuser', False)
+            user.is_active = data.get('active', True)
             user.save()
-        except Exception as e:
+        except Exception:
             return None
 
         return user
