@@ -56,13 +56,10 @@ app = FastAPI(
     lifespan=lifespan,
     title="Сервис авторизации",
     description="Реализует методы идентификации, аутентификации, авторизации",
-    docs_url="/api/openapi",
-    openapi_url="/api/openapi.json",
+    docs_url="/auth/api/openapi",
+    openapi_url="/auth/api/openapi.json",
     default_response_class=ORJSONResponse,
 )
-
-
-FastAPIInstrumentor.instrument_app(app)
 
 
 @app.middleware('http')
@@ -110,9 +107,12 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         return self.application
 
 
-app.include_router(users.router, prefix="/api/v1/users")
-app.include_router(roles.router, prefix="/api/v1/roles", dependencies=[Depends(check_jwt)])
-app.include_router(permissions.router, prefix="/api/v1/permissions", dependencies=[Depends(check_jwt)])
+app.include_router(users.router, prefix="/auth/api/v1/users")
+app.include_router(roles.router, prefix="/auth/api/v1/roles", dependencies=[Depends(check_jwt)])
+app.include_router(permissions.router, prefix="/auth/api/v1/permissions", dependencies=[Depends(check_jwt)])
+
+
+FastAPIInstrumentor.instrument_app(app)
 
 
 def async_cmd(func):

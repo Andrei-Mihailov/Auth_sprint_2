@@ -28,8 +28,8 @@ app = FastAPI(
     lifespan=lifespan,
     title=settings.project_name,
     description="Информация о фильмах, жанрах и людях, участвовавших в их создании",
-    docs_url='/api/openapi',
-    openapi_url='/api/openapi.json',
+    docs_url='/movies/api/openapi',
+    openapi_url='/movies/api/openapi.json',
     default_response_class=ORJSONResponse
 )
 
@@ -55,9 +55,9 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         return self.application
 
 
-app.include_router(films.router, prefix='/api/v1/films')
-app.include_router(genres.router, prefix='/api/v1/genres')
-app.include_router(persons.router, prefix='/api/v1/persons')
+app.include_router(films.router, prefix='/movies/api/v1/films')
+app.include_router(genres.router, prefix='/movies/api/v1/genres')
+app.include_router(persons.router, prefix='/movies/api/v1/persons')
 
 if __name__ == '__main__':
     options = {
