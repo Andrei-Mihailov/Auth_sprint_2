@@ -3,7 +3,9 @@ from fastapi.responses import RedirectResponse
 
 from services.oauth import get_provider_service
 from services.oauth.yandex import YandexOAuthService, get_yandex_service
+from service.oauth.yandex.base import AbstractOAuthService
 from services.user import UserService, get_user_service
+from http import HTTPStatus
 
 from api.v1.schemas.auth import (
     TokenSchema
@@ -22,9 +24,9 @@ router = APIRouter(prefix="/oauth")
     summary="Войти с помощью провайдера",
     tags=["Авторизация"])
 async def get_authorize_url(provider: str):
-    oauth_service: YandexOAuthService = get_provider_service(provider)
+    oauth_service: AbstractOAuthService = get_provider_service(provider)
     if oauth_service is None:
-        raise HTTPException(status_code=400, detail="Unknown provider")
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Unknown provider")
 
     return await oauth_service.get_authorize_url()
 

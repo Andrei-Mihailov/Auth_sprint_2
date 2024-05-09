@@ -11,7 +11,7 @@ from db.postgres_db import get_session
 from models.entity import SocialAccount, User
 from services.utils import generate_random_string
 from api.v1.schemas.users import UserParams
-
+import httpx
 
 class YandexOAuthService(AbstractOAuthService, BaseService):
     def __init__(self, storage: AsyncSession = None):
@@ -73,7 +73,7 @@ class YandexOAuthService(AbstractOAuthService, BaseService):
         social_account.user_id = user.id
         await self.change_instance_data(social_account.id, social_account)
 
-    def get_token(self, code: str) -> dict:
+    async def get_token(self, code: str) -> dict:
         """Обмен кода подтверждения на токен."""
         url = self.oauth_url + "token"
         headers = {
@@ -85,33 +85,35 @@ class YandexOAuthService(AbstractOAuthService, BaseService):
             'client_id': self.client_id,
             'client_secret': self.client_secret,
         }
-        request = requests.post(url, data=payload, headers=headers)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, data=payload, headers=headers)
         data = None
 
-        if request.status_code == 400:
-            data = request.json()
-            data['authorize_url'] = self.get_authorize_url()
+        if response.status_code == 400:
+            data = response.json()
+            data['authorize_url'] = await self.get_authorize_url()
 
-        if request.status_code == 200:
-            data = request.json()
+        if response.status_code == 200:
+            data = response.json()
 
         return data
 
-    def get_user_info(self, access_token) -> dict:
+    async def get_user_info(self, access_token) -> dict:
         """Запрос информации о пользователе."""
         url = self.login_url + 'info'
         headers = {
             'Authorization': f'OAuth {access_token}',
         }
-        request = requests.get(url, headers=headers)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
 
         data = None
 
-        if request.status_code == 400:
-            data = request.json()
+        if response.status_code == 400:
+            data = response.json()
 
-        if request.status_code == 200:
-            data = request.json()
+        if response.status_code == 200:
+            data = response.json()
 
         return data
 
