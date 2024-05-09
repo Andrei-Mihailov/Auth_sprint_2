@@ -1,8 +1,7 @@
-import requests
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 from functools import lru_cache
+from http import HTTPStatus
 
 from core.config import yandex_settings
 from services.oauth.base import AbstractOAuthService
@@ -12,6 +11,7 @@ from models.entity import SocialAccount, User
 from services.utils import generate_random_string
 from api.v1.schemas.users import UserParams
 import httpx
+
 
 class YandexOAuthService(AbstractOAuthService, BaseService):
     def __init__(self, storage: AsyncSession = None):
@@ -89,11 +89,11 @@ class YandexOAuthService(AbstractOAuthService, BaseService):
             response = await client.post(url, data=payload, headers=headers)
         data = None
 
-        if response.status_code == 400:
+        if response.status_code == HTTPStatus.BAD_REQUEST:
             data = response.json()
             data['authorize_url'] = await self.get_authorize_url()
 
-        if response.status_code == 200:
+        if response.status_code == HTTPStatus.OK:
             data = response.json()
 
         return data
@@ -109,10 +109,10 @@ class YandexOAuthService(AbstractOAuthService, BaseService):
 
         data = None
 
-        if response.status_code == 400:
+        if response.status_code == HTTPStatus.BAD_REQUEST:
             data = response.json()
 
-        if response.status_code == 200:
+        if response.status_code == HTTPStatus.OK:
             data = response.json()
 
         return data
@@ -121,8 +121,6 @@ class YandexOAuthService(AbstractOAuthService, BaseService):
 @ lru_cache()
 def get_yandex_service(
     db: AsyncSession = Depends(get_session)
-
-
 ) -> YandexOAuthService:
 
     return YandexOAuthService(db)
