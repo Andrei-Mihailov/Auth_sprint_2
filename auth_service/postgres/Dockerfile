@@ -17,8 +17,6 @@ RUN set -ex \
         --strip-components 1 \
     && rm pg_partman.tar.gz \
     && cd /usr/src/pg_partman \
-    # Build the extension
     && make \
-    # Install the extension
     && make install \
     && rm -rf /usr/src/pg_partman
