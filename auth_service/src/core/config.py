@@ -53,6 +53,11 @@ class Settings(BaseSettings):
 
     REQUEST_LIMIT_PER_MINUTE: int = os.getenv('REQUEST_LIMIT_PER_MINUTE', 20)
 
+    # Настройка трассировки
+    tracer_host: str
+    tracer_port: int
+    enable_tracer: bool
+
     class Config:
         env_file = ".env"
 
