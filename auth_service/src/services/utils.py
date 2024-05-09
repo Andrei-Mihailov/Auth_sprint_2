@@ -1,11 +1,14 @@
 import jwt
 import uuid
+import string
 
 from datetime import timedelta, datetime, timezone
 from fastapi import HTTPException, status
+from secrets import choice as secrets_choice
 
 from core.config import settings
 from models.value_objects import Role_names
+
 
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
@@ -95,6 +98,11 @@ def validate_password(hashed_password: bytes, password: str) -> bool:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Incorrect password"
         )
+
+
+def generate_random_string():
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets_choice(alphabet) for _ in range(16))
 
 
 def check_date_and_type_token(payload: dict, type_token_need: str) -> bool:

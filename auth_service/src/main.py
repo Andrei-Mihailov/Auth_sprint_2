@@ -16,7 +16,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExport
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME
 
-from api.v1 import users, roles, permissions
+from api.v1 import users, roles, permissions, oauth
 from db import postgres_db
 from db import redis_db
 from core.config import settings
@@ -107,12 +107,14 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         return self.application
 
 
+
 app.include_router(users.router, prefix="/auth/api/v1/users")
 app.include_router(roles.router, prefix="/auth/api/v1/roles", dependencies=[Depends(check_jwt)])
 app.include_router(permissions.router, prefix="/auth/api/v1/permissions", dependencies=[Depends(check_jwt)])
-
+app.include_router(oauth.router, prefix="/auth/api/v1/oauth")
 
 FastAPIInstrumentor.instrument_app(app)
+
 
 
 def async_cmd(func):

@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.entity import User
 from .base_service import BaseService
+from .oauth.yandex import YandexOAuthService
 from models.auth import Tokens
 from .utils import (
     create_refresh_token,
@@ -66,24 +67,47 @@ class UserService(BaseService):
         user = await self.create_new_instance(user_params)
         return user
 
-    async def login(self, user_email: str, user_password: str) -> Tokens:
-        user = await self.get_validate_user(user_email, user_password)
+    async def generate_and_save_tokens(self, user: User) -> Tokens:
         user_role = user.role.type if user.role else None
         access_token = create_access_token(user, user_role)
         refresh_token = create_refresh_token(user)
 
         # добавление refresh токена в вайт-лист редиса
         await self.add_to_white_list(refresh_token, REFRESH_TOKEN_TYPE)
-        return Tokens(access_token=access_token, refresh_token=refresh_token), user
+        return Tokens(access_token=access_token, refresh_token=refresh_token)
+
+    async def login(self, user_email: str, user_password: str) -> Tokens:
+        user = await self.get_validate_user(user_email, user_password)
+        return await self.generate_and_save_tokens(user), user
+
+    async def login_by_yandex(
+        self,
+        code: int,
+        yandex_provider: YandexOAuthService
+    ) -> Tokens:
+        social_account, user_params = await yandex_provider.register(code)
+
+        if social_account is None:
+            return status.HTTP_400_BAD_REQUEST
+
+        if social_account.user_id is None:
+            user = await self.get_user_by_email(user_params.email)
+            if user is None:
+                user = await self.create_user(user_params)
+            await yandex_provider.set_user_data(social_account, user)
+        else:
+            user = await self.get_instance_by_id(social_account.user_id)
+        tokens = await self.generate_and_save_tokens(user)
+        if tokens is None:
+            return status.HTTP_409_CONFLICT
+        return tokens
 
     async def logout(self, access_token: str, refresh_token: str) -> bool:
         await self.add_to_black_list(access_token, ACCESS_TOKEN_TYPE)
         await self.del_from_white_list(refresh_token)
         return True
 
-    async def refresh_access_token(
-        self, access_token: str, refresh_token: str
-    ) -> Tokens:
+    async def refresh_access_token(self, access_token: str, refresh_token: str, get: object) -> Tokens:
         # Декодирование refresh-токена
         payload = self.token_decode(refresh_token)
         user_uuid = payload.get("sub")

@@ -167,9 +167,12 @@ async def refresh_token(
     request: Request, user_service: UserService = Depends(get_user_service)
 ) -> TokenSchema:
     tokens = get_tokens_from_cookie(request)
-    new_tokens = await user_service.refresh_access_token(
-        tokens.access_token, tokens.refresh_token
-    )
+
+    oauth_service = get_provider_service("yandex")
+
+    data = oauth_service.refresh_token(refresh_token=refresh_token)
+    new_tokens = await user_service.refresh_access_token(tokens.access_token, tokens.refresh_token,
+                                                         data.get('expires_in'))
     response = Response()
     response.set_cookie("access_token", new_tokens.access_token)
     response.set_cookie("refresh_token", new_tokens.refresh_token)
