@@ -42,8 +42,8 @@ class YandexOAuthService(AbstractOAuthService, BaseService):
         return authorize_url
 
     async def register(self, code):
-        data_token = self.get_token(code)
-        social_user = self.get_user_info(data_token['access_token'])
+        data_token = await self.get_token(code)
+        social_user = await self.get_user_info(data_token['access_token'])
         user_params = UserParams(
             first_name=social_user['first_name'],
             last_name=social_user['last_name'],
