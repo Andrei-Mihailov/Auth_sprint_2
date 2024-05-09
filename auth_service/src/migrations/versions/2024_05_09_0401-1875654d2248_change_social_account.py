@@ -1,7 +1,7 @@
 """change_social_account
 
 Revision ID: 1875654d2248
-Revises: 866d36e55d18
+Revises: 65a4e8f17754
 Create Date: 2024-05-09 04:01:19.629117
 
 """
@@ -14,7 +14,7 @@ from db.postgres_db import Base
 
 # revision identifiers, used by Alembic.
 revision: str = '1875654d2248'
-down_revision: Union[str, None] = '866d36e55d18'
+down_revision: Union[str, None] = '65a4e8f17754'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
