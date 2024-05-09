@@ -1,9 +1,8 @@
 from fastapi import status, HTTPException, Request, Depends
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from pydantic_core import ValidationError
 from functools import wraps
-from typing import Union, Optional
+from typing import Union
 from api.v1.schemas.auth import (
     TokenParams,
 )
@@ -30,15 +29,14 @@ def get_tokens_from_cookie(request: Request) -> TokenParams:
         return token
     except (ValidationError, AttributeError):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tokens is not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tokens is not found"
         )
 
 
 async def check_jwt(request: Request, service: UserService = Depends(get_user_service)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials"
+        detail="Could not validate credentials",
     )
     tokens = get_tokens_from_cookie(request)
     payload = decode_jwt(jwt_token=tokens.access_token)
@@ -46,8 +44,7 @@ async def check_jwt(request: Request, service: UserService = Depends(get_user_se
         # проверка access токена в блэк листе redis
         if await service.get_from_black_list(tokens.access_token):
             raise credentials_exception
-    else:
-        raise credentials_exception
+    raise credentials_exception
 
 
 async def is_admin(payload: dict) -> bool:
@@ -67,17 +64,17 @@ async def has_permission(access_token: str) -> bool:
     payload = decode_jwt(jwt_token=access_token)
     if await is_admin(payload):
         return True
-    else:
-        return False
+    return False
 
 
 def allow_this_user(function):
     @wraps(function)
     async def wrapper(*args, **kwargs):
-        request = kwargs.get('request', None)
+        request = kwargs.get("request", None)
         service: Union[RoleService, PermissionService] = kwargs.get(
-            'role_service', kwargs.get('permission_service', None))
-        user_id = kwargs.get('user_id', None)
+            "role_service", kwargs.get("permission_service", None)
+        )
+        user_id = kwargs.get("user_id", None)
         tokens = get_tokens_from_cookie(request)
         payload = decode_jwt(jwt_token=tokens.access_token)
         check_superuser = await is_superuser(payload)
@@ -93,7 +90,7 @@ def allow_this_user(function):
                 if user_role == Role_names.admin:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail='This operation is forbidden for you',
+                        detail="This operation is forbidden for you",
                     )
 
                 else:
@@ -103,30 +100,7 @@ def allow_this_user(function):
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail='This operation is forbidden for you',
+                detail="This operation is forbidden for you",
             )
+
     return wrapper
-
-
-class JWTBearer(HTTPBearer):
-    def __init__(self, auto_error: bool = True):
-        super().__init__(auto_error=auto_error)
-
-    async def __call__(self, request: Request) -> dict:
-        credentials: HTTPAuthorizationCredentials = await super().__call__(request)
-        if not credentials:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Invalid authorization code.')
-        if not credentials.scheme == 'Bearer':
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail='Only Bearer token might be accepted')
-        decoded_token = self.parse_token(credentials.credentials)
-        if not decoded_token:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Invalid or expired token.')
-        return decoded_token
-
-    @staticmethod
-    def parse_token(jwt_token: str) -> Optional[dict]:
-        return decode_jwt(jwt_token=jwt_token)
-
-
-security_jwt = JWTBearer()

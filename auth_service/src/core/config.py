@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     pwd_context: CryptContext = CryptContext(schemes=["bcrypt"], deprecated="auto")
     oauth2_scheme: OAuth2PasswordBearer = OAuth2PasswordBearer(tokenUrl="token")
 
+    REQUEST_LIMIT_PER_MINUTE: int = os.getenv('REQUEST_LIMIT_PER_MINUTE', 20)
+
     class Config:
         env_file = ".env"
 

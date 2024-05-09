@@ -1,0 +1,100 @@
+version: "3"
+services:
+  elastic:
+    image: elasticsearch:8.6.2
+    container_name: elastic-fastapi
+    environment:
+      ES_JAVA_OPTS: ${ES_JAVA_OPTS}
+      xpack.security.enabled: ${SECURITY}
+      discovery.type: ${DISCOVERY}
+    expose:
+      - "${ELASTIC_PORT}"
+    volumes:
+      - elasticdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: curl -s ${ELASTIC_HOST}:${ELASTIC_PORT} >/dev/null || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 50
+
+  redis:
+    image: redis:7.2.4
+    container_name: redis-fastapi
+    expose:
+      - "${REDIS_PORT}"
+
+  db:
+    image: postgres:13
+    container_name: pgdb-fastapi
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    expose:
+      - "${DB_PORT}"
+    volumes:
+      - pgdbapi:/var/lib/postgresql@13/data/
+      - ./postgres_to_es/dump.sql:/docker-entrypoint-initdb.d/dump.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DB_NAME} -U ${DB_USER}"]
+      interval: 5s
+      timeout: 60s
+      retries: 5
+
+  etl-films:
+    build: ./postgres_to_es
+    container_name: etl-films
+    command: >
+      sh -c "until curl -s elastic:${ELASTIC_PORT} >/dev/null; do sleep 1; done; python postgres_to_es.py films"
+    volumes:
+      - ./postgres_to_es/postgres_to_es.py:/opt/app/postgres_to_es.py
+      - ./postgres_to_es/utils:/opt/app/utils
+      - ./postgres_to_es/configs:/opt/app/configs
+    env_file:
+      - ./.env
+
+  etl-genres:
+    build: ./postgres_to_es
+    container_name: etl-genres
+    command: >
+      sh -c "until curl -s elastic:${ELASTIC_PORT} >/dev/null; do sleep 1; done; python postgres_to_es.py genres"
+    volumes:
+      - ./postgres_to_es/postgres_to_es.py:/opt/app/postgres_to_es.py
+      - ./postgres_to_es/utils:/opt/app/utils
+      - ./postgres_to_es/configs:/opt/app/configs
+    env_file:
+      - ./.env
+
+  etl-persons:
+    build: ./postgres_to_es
+    container_name: etl-persons
+    command: >
+      sh -c "until curl -s elastic:${ELASTIC_PORT} >/dev/null; do sleep 1; done; python postgres_to_es.py persons"
+    volumes:
+      - ./postgres_to_es/postgres_to_es.py:/opt/app/postgres_to_es.py
+      - ./postgres_to_es/utils:/opt/app/utils
+      - ./postgres_to_es/configs:/opt/app/configs
+    env_file:
+      - ./.env
+
+  app:
+    build: .
+    container_name: solution-fastapi
+    command: >
+      sh -c "until curl -s elastic:${ELASTIC_PORT} >/dev/null; do sleep 1; done; python main.py"
+    env_file:
+      - ./.env
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./configs:/etc/nginx/conf.d:ro
+    depends_on:
+      - app
+    ports:
+      - "8000:80"
+
+volumes:
+  elasticdata:
+  pgdbapi:

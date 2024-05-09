@@ -1,0 +1,55 @@
+version: "3"
+services:
+  # elastic:
+  #   image: elasticsearch:8.6.2
+  #   container_name: elastic-fastapi-test
+  #   environment:
+  #     ES_JAVA_OPTS: ${ES_JAVA_OPTS}
+  #     xpack.security.enabled: ${SECURITY}
+  #     discovery.type: ${DISCOVERY}
+  #   # expose:
+  #   #   - "${ELASTIC_PORT}" закрыть порты при отправке на ревью
+  #   ports:
+  #     - "${ELASTIC_PORT}:${ELASTIC_PORT}"
+  #   volumes:
+  #     - elasticdata:/usr/share/elasticsearch/data
+
+  # redis:
+  #   image: redis:7.2.4
+  #   container_name: redis-fastapi-test
+  #   # expose:
+  #   #   - "${REDIS_PORT}" закрыть порты при отправке на ревью
+  #   ports:
+  #     - "${REDIS_PORT}:${REDIS_PORT}"
+
+  app:
+    build: ../../.
+    container_name: solution-fastapi-test
+    image: fastapi-image
+    command: >
+      sh -c "until curl -s elastic:${ELASTIC_PORT} >/dev/null; do sleep 1; done; python main.py"
+    env_file:
+      - ../../.env
+    ports:
+      - "${SERVICE_PORT}:${SERVICE_PORT}"
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ../../nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../../configs:/etc/nginx/conf.d:ro
+    depends_on:
+      - app
+    ports:
+      - "8000:80"
+  # tests:
+  #   build: .
+  #   container_name: tests-fastapi
+  #   depends_on:
+  #     - app
+  #   #image: fastapi-image
+  #   env_file:
+  #     - ./.env
+
+volumes:
+  elasticdata:
