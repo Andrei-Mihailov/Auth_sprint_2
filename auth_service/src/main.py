@@ -10,7 +10,7 @@ from fastapi.responses import ORJSONResponse
 from redis.asyncio import Redis
 from contextlib import asynccontextmanager
 
-from api.v1 import users, roles, permissions
+from api.v1 import users, roles, permissions, oauth
 from db import postgres_db
 from db import redis_db
 from core.config import settings
@@ -61,6 +61,7 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
 app.include_router(users.router, prefix="/api/v1/users")
 app.include_router(roles.router, prefix="/api/v1/roles", dependencies=[Depends(check_jwt)])
 app.include_router(permissions.router, prefix="/api/v1/permissions", dependencies=[Depends(check_jwt)])
+app.include_router(oauth.router, prefix="/api/v1/oauth")
 
 
 def async_cmd(func):

@@ -1,8 +1,8 @@
-from auth_service.src.services.oauth.base import OAuthService
-from auth_service.src.services.oauth.yandex import YandexOAuthService
+from services.oauth.base import AbstractOAuthService
+from services.oauth.yandex import YandexOAuthService
 
 
-def get_provider_service(provider_name: str) -> OAuthService:
+def get_provider_service(provider_name: str) -> AbstractOAuthService:
     oauth_service = None
 
     if provider_name == 'yandex':

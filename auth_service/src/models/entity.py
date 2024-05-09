@@ -41,8 +41,8 @@ class Permissions(Base):
 class SocialAccount(Base):
     __tablename__ = 'social_account'
 
-    id = mapped_column(UUID(as_uuid=True), primary_key=True)
-    user_id = mapped_column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    id = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = mapped_column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     user = relationship("User", back_populates='social_accounts')
 
     social_id = mapped_column(Text, nullable=False)

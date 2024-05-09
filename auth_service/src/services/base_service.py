@@ -45,9 +45,14 @@ class BaseService(AbstractBaseService):
         return instance
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
-    async def get_instance_data(self, instance_id: int):
+    async def get_instance_data(self, instance_id: str, social_name: str):
         try:
-            instance = await self.storage.get(self.model, instance_id)
+            stmt = select(self.model).where(
+                (self.model.social_id == instance_id) &
+                (self.model.social_name == social_name)
+            )
+            result = await self.storage.execute(stmt)
+            instance = result.scalars().first()
             if instance is None:
                 return None
             return instance

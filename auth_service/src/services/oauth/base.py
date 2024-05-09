@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class OAuthService(ABC):
+class AbstractOAuthService(ABC):
     @abstractmethod
     def get_authorize_url(self, state: str = None) -> str:
         raise NotImplementedError

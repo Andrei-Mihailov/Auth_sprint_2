@@ -1,7 +1,7 @@
 import os
 from logging import config as logging_config
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
@@ -18,15 +18,18 @@ class AuthJWT(BaseModel):
     access_token_expire_minutes: int = 20 * 60
     refresh_token_expire_minutes: int = 30 * 24 * 60 * 60  # 30 дней
 
-class OauthYandex(BaseModel):
+
+class YandexSettings(BaseSettings):
     oauth_url: str = 'https://oauth.yandex.ru/'
     login_url: str = 'https://login.yandex.ru/'
     client_id: str
     client_secret: str
 
+    class Config:
+        env_file = "providers.env"
+
+
 class Settings(BaseSettings):
-    oauth_yandex: OauthYandex
-    # Название проекта. Используется в Swagger-документации
     project_name: str
 
     service_port: int
@@ -53,7 +56,7 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
+yandex_settings = YandexSettings()
 page_max_size = 100
 # Корень проекта
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
