@@ -48,3 +48,9 @@ http://127.0.0.1/auth/api/v1/oauth/yandex/authorize-url
 Реализация в миграции alembic:
 2024_05_05_0529-65a4e8f17754_add_partition_to_auth
 Автоматическое создание партиций с использованием pg_partman
+
+## Ссылка на репозиторий:
+
+```
+https://github.com/Andrei-Mihailov/Auth_sprint_2
+```
