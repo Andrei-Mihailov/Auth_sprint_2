@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 
 from services.oauth import get_provider_service
-from services.oauth.yandex import YandexOAuthService, get_yandex_service
-from services.oauth.yandex import AbstractOAuthService
+from services.oauth.yandex import (YandexOAuthService,
+                                   get_yandex_service,
+                                   AbstractOAuthService)
 from services.user import UserService, get_user_service
 from http import HTTPStatus
 
