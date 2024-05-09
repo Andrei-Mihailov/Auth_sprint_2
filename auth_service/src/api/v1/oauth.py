@@ -47,20 +47,20 @@ async def receive_verification_code(
         code=code,
         yandex_provider=yandex_provider
     )
-    if login_result == status.HTTP_409_CONFLICT:
+    if login_result == HTTPStatus.CONFLICT:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=HTTPStatus.CONFLICT,
             detail='User not found'
         )
 
-    if login_result == status.HTTP_401_UNAUTHORIZED:
+    if login_result == HTTPStatus.UNAUTHORIZED:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=HTTPStatus.UNAUTHORIZED,
             detail='Invalid password'
         )
     if not login_result:
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
+            status_code=HTTPStatus.BAD_GATEWAY,
             detail="Can't login"
         )
     return login_result
