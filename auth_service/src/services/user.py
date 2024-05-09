@@ -107,7 +107,11 @@ class UserService(BaseService):
         await self.del_from_white_list(refresh_token)
         return True
 
-    async def refresh_access_token(self, access_token: str, refresh_token: str, get: object) -> Tokens:
+    async def refresh_access_token(
+        self,
+        access_token: str,
+        refresh_token: str
+    ) -> Tokens:
         # Декодирование refresh-токена
         payload = self.token_decode(refresh_token)
         user_uuid = payload.get("sub")
@@ -135,7 +139,8 @@ class UserService(BaseService):
                 )
 
     async def check_permissions(
-        self, access_token: str, required_permissions: str
+        self, access_token: str,
+        required_permissions: str
     ) -> bool:
         """Проверка прав доступа у пользователя."""
         payload = self.token_decode(access_token)
