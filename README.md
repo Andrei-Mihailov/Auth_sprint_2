@@ -22,20 +22,6 @@ python src/main.py --email=email --password=password
 /auth/api/v1/users/login
 ```
 
-## Авторизация через яндекс OAuth
-
-Переход по ссылке
-
-```
-/auth/api/v1/oauth/yandex/authorize-url
-```
-
-перенаправит на страницу авторизации яндекса, после чего полученный код необходимо передать в ручку:
-
-```
-/auth/api/v1/oauth/webhook
-```
-
 ## Работа с сервисами через docker
 
 http://127.0.0.1/auth/api/openapi
@@ -43,6 +29,18 @@ http://127.0.0.1/movies/api/openapi
 http://127.0.0.1/admin/
 
 ## Регистрация и аутентификация через Яндекс
+
+Переход по ссылке
+
+```
+http://127.0.0.1/auth/api/v1/oauth/yandex/authorize-url
+```
+
+перенаправит на страницу авторизации яндекса, после чего полученный код необходимо передать в ручку:
+
+```
+/auth/api/v1/oauth/webhook
+```
 
 ## Партицирование
 
